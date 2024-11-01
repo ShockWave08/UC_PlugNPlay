@@ -1,0 +1,139 @@
+<?php
+
+/**
+ * @file
+ * Plug N Pay Smart Screens v2 Specifications integration for Drupal 7 UberCart.
+ */
+
+ /**
+ * Make sure anyone can complete their PlugnPlay orders.
+ */
+function uc_plugnplay_completion_access() {
+  // All user have access to finish the payment.
+  return TRUE;
+}
+
+/**
+ * Implements hook_menu().
+ * Adds an admin settings page for PlugnPay payment method.
+ */
+function uc_plugnplay_menu() {
+
+  $items = array();
+
+  $items['cart/plugnplay/complete'] = array(
+    'title' => 'Order Complete',
+    'page callback' => 'uc_plugnplay_complete',
+    'access callback' => 'uc_plugnplay_completion_access',
+    'type' => MENU_CALLBACK, 
+  );
+
+
+  return $items;
+}
+
+/**
+ * Implements hook_uc_payment_method().
+ * Registers the PlugnPay payment method in Ubercart.
+ */
+function uc_plugnplay_uc_payment_method() {
+  return array(
+    'id' => 'plugnpay',
+    'name' => t('PlugnPay Smart Screens V2'),
+    'title' => 'PlugNPlay',
+    'review' => t('Credit Card'),
+    'desc' => t('Redirect to plugNPlay to pay by credit card.'),
+    'callback' => 'uc_plugnplay_process_payment',
+    'redirect' => 'uc_plugnplay_form',
+    'weight' => 3,
+    'checkout' => TRUE,
+    'no_gateway' => TRUE,
+  );
+}
+
+
+/**
+ * Adds PlugNPlay settings to the payment method settings form.
+ *
+ * @see uc_plugnplay_uc_payment_method()
+ */
+function uc_payment_method_plugnplay($op, &$order, $form = NULL, &$form_state = NULL) {
+  switch($op) {
+    case 'settings':
+      $form['uc_plugnplay_name'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Name'),
+          '#description' => t('Client Key from Platon'),
+          '#default_value' => variable_get('uc_plugnplay_key', '')
+      );
+
+      $form['uc_plugnplay_dname'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Password'),
+          '#description' => t('Password for order verification.'),
+          '#default_value' => variable_get('uc_plugnplay_password', '')
+      );
+
+      $form['uc_plugnplay_mode'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Gateway URL'),
+          '#description' => t('Gateway URL, change only if it required'),
+          '#options' => array (
+          'auth' => t('Static'),
+          'debug' => t('Itemized')
+          ),
+          '#default_value' => variable_get('uc_plugnplay_mode', 'test'),
+      );
+
+      $form['uc_plugnplay_inbound_key'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Payment method title'),
+          '#default_value' => variable_get('uc_plugnplay_inbound_key', t('')),
+      );
+
+      $form['uc_plugnplay_outbound_key'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Payment method title'),
+        '#default_value' => variable_get('uc_plugnplay_outbound_key', t('')),
+      );
+
+      return $form;
+    case 'cart-review':
+        $review[] = array('title' => t('Payment Gateway'), 'data' => '');
+        return $review;
+  }
+}
+
+/**
+ * Name
+ * Display Name
+ * Mode
+ * PlugNPay Gateway Account
+ * Transaction Mode
+ * PlugNPlay Inbound Verification Key
+ * PlugNPlay Outbound Verification Key
+ */
+
+
+function uc_plugnplay_form ($form, &$form_state, $order) {
+  return $form;
+}
+
+
+/**
+ * Callback function to process payment.
+ * Redirects the user to PlugnPay Smart Screens V2.
+ */
+function uc_plugnplay_process_payment($order, $payment_details) {
+  
+}
+
+
+
+/**
+ * Handles the payment return from PlugnPay.
+ */
+function uc_plugnplay_payment_complete() {
+
+}
+ 

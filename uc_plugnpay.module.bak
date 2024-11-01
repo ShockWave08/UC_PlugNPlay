@@ -1,0 +1,295 @@
+<?php
+
+/**
+ * @file
+ * Plug N Pay Smart Screens v2 Specifications integration for Drupal UberCarts.
+ */
+
+
+ /**
+ * Implements hook_menu().
+ */
+function uc_plugnplay_menu() {
+    $items = array();
+
+    // Route for successful payment response.
+    $items['plugnpay/response/success'] = array(
+        'title' => 'Plug\'n Pay Payment Success',
+        'page callback' => 'uc_plugnplay_handle_success',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+
+    // Route for failed payment response.
+    $items['plugnpay/response/failure'] = array(
+        'title' => 'Plug\'n Pay Payment Failure',
+        'page callback' => 'uc_plugnplay_handle_failure',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+
+    return $items;
+}
+
+
+/**
+ * Implements hook_uc_payment_method().
+ */
+function uc_plugnplay_uc_payment_method() {
+    $methods = array();
+
+    $methods['plugnpay_smartscreen'] = array(
+        'id' => 'pnp_wps',
+        'title' => t('Plug\'n Pay Smart Screens V2'),
+        'description' => t('Pay via Plug\'n Pay Smart Screens V2 hosted billing form page.'),
+        'callbacks' => array(
+            'submit_form' => 'uc_plugnplay_submit_form',
+            'validate' => 'uc_plugnplay_validate',
+            'settings_form' => 'uc_plugnplay_settings_form',
+        'redirect' => '',
+        ),
+    );
+
+    return $methods;
+}
+
+
+
+/**
+ * Provides the settings form for the Plug'n Pay Smart Screens V2 payment method.
+ */
+function uc_plugnplay_settings_form($method) {
+    $form = array();
+
+    // Plug'n Pay Login ID.
+    $form['plugnpay_login_id'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Login ID'),
+        '#default_value' => $method['settings']['plugnpay_login_id'],
+        '#required' => TRUE,
+    );
+
+    // Plug'n Pay Transaction Key.
+    $form['plugnpay_transaction_key'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Transaction Key'),
+        '#default_value' => $method['settings']['plugnpay_transaction_key'],
+        '#required' => TRUE,
+    );
+
+    // Plug'n Pay Hosted Payment Page URL for Smart Screens V2.
+    $form['plugnpay_payment_url'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Hosted Payment Page URL'),
+        '#default_value' => $method['settings']['plugnpay_payment_url'],
+        '#required' => TRUE,
+    );
+
+    // Test mode checkbox.
+    $form['plugnpay_test_mode'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Enable Test Mode'),
+        '#default_value' => $method['settings']['plugnpay_test_mode'],
+    );
+
+    return $form;
+}
+
+
+/**
+ * Redirects the user to Plug'n Pay Smart Screens V2 hosted payment page.
+ */
+function uc_plugnplay_submit_form($order, $form, &$form_state) {
+    $method = uc_payment_method_load($order->payment_method);
+
+    // Prepare the data to be sent to Plug'n Pay.
+    $data = array(
+        'publisher-name' => $method['settings']['plugnpay_login_id'],
+        'order-id' => $order->order_id,
+        'amount' => $order->order_total,
+        'success_url' => url('plugnpay/response/success', array('absolute' => TRUE)),
+        'failure_url' => url('plugnpay/response/failure', array('absolute' => TRUE)),
+        'test_mode' => $method['settings']['plugnpay_test_mode'],
+    );
+
+    // Redirect to the Plug'n Pay Smart Screens V2 hosted payment page.
+    $query = http_build_query($data);
+    $url = $method['settings']['plugnpay_payment_url'] . '?' . $query;
+    
+    drupal_goto($url);
+}
+
+
+
+
+/**
+ * Handles successful payment responses from Plug'n Pay.
+ */
+function uc_plugnplay_handle_success() {
+    $order_id = $_GET['order-id'];
+
+    // Load the order based on the order ID.
+    $order = uc_order_load($order_id);
+
+    if ($order) {
+        // Update order status to "Payment received".
+        uc_order_update_status($order->order_id, 'completed');
+
+        // Display success message to the user.
+        drupal_set_message(t('Payment successful. Your order has been processed.'));
+    } else {
+        drupal_set_message(t('Order not found.'), 'error');
+    }
+
+    // Redirect to the order review page.
+    drupal_goto('cart/checkout/' . $order->order_id);
+}
+
+
+/**
+ * Handles failed payment responses from Plug'n Pay.
+ */
+function uc_plugnplay_handle_failure() {
+    $order_id = $_GET['order-id'];
+
+    // Load the order based on the order ID.
+    $order = uc_order_load($order_id);
+
+    if ($order) {
+        // Update order status to "Canceled".
+        uc_order_update_status($order->order_id, 'canceled');
+
+        // Display failure message to the user.
+        drupal_set_message(t('Payment failed. Please try again.'), 'error');
+    } else {
+        drupal_set_message(t('Order not found.'), 'error');
+    }
+
+    // Redirect to the cart page.
+    drupal_goto('cart');
+}
+
+/**
+ * Implementation of hook_help().
+ */
+/*
+function uc_plugnplay_help($path, $arg) {
+    switch ($path) {
+      case 'admin/modules#description':
+        $output = t('Enables Lightbox2 for Drupal');
+        break;
+      case 'admin/help#lightbox2':
+        $output = '<h3>' . t('Overview') . '</h3>';
+        $output .= '<p>' . t('Lightbox2 JS is a simple, unobtrusive script used to overlay images on the current page. It\'s a snap to setup and works on all modern browsers. The module comes with a Lightbox2 Lite option which does not use the JQuery libraries; it is therefore less likely to conflict with anything else.') . '</p>';
+        $output .= '<p>' . t('Places images above your current page, not within. This frees you from the constraints of the layout, particularly column widths. Keeps users on the same page. Clicking to view an image and then having to click the back button to return to your site is bad for continuity (and no fun!).') . '</p>';
+        // Features
+        $output .= '<h3>' . t('Features') . '</h3>';
+        $output .= '<p>' . t('The version 2 module has several benefits over the plain Lightbox module. Note, not all of these features are available when the "Lightbox2 Lite" option is enabled.') . '</p>';
+        $output .= '<ul>';
+        $output .= '<li>' . t('Image Sets: group related images and navigate through them with ease - ideal for your image galleries.') . '</li>';
+        $output .= '<li>' . t('Slideshow Capability: automatically transition between grouped images, includes play/pause and previous and next buttons.') . '</li>';
+        $output .= '<li>' . t('HTML Content Support: ability to show websites or other HTML content in a lightbox.') . '</li>';
+        $output .= '<li>' . t('Video Content Support: ability to show videos in a lightbox.') . '</li>';
+        $output .= '<li>' . t('Visual Effects: fancy pre-loader and transition when you click on the image.') . '</li>';
+        $output .= '<li>' . t('Keyboard Shortcuts: useful <a href="http://drupal.org/node/249827">keyboard shortcuts</a> for switching between images, toggling play / pause, etc.') . '</li>';
+        $output .= '<li>' . t('Zoom Capability: larger images are reduced in size so they fit snugly inside the browser window.  A zoom button can then be clicked on to see it in its original size.') . '</li>';
+        $output .= '<li>' . t('Automatic Image Detection: configurable automatic re-formatting of image thumbnails, so there is no need to add \'rel="lightbox"\' to each image link on your site. ');
+        $output .= t('<a href="!image">Image</a>, <a href="!inline">Inline</a>, <a href="!flickr">Flickr</a>, <a href="!img_assist">Image Assist</a> and <a href="!imagefield">CCK Imagefield</a> modules are all supported. ', array('!image' => 'http://drupal.org/project/image', '!inline' => 'http://drupal.org/project/inline', '!flickr' => 'http://drupal.org/project/flickr', '!img_assist' => 'http://drupal.org/project/img_assist', '!imagefield' => 'http://drupal.org/project/imagefield'));
+        $output .= t('It\'s also possible to configure a custom list of image classes which should trigger the lightbox functionality.');
+        $output .='</li>';
+        $output .= '<li>' . t('<a href="!imagecache">Imagecache</a> Support: adds a Lightbox2 field formatter for <a href="!imagefield">CCK imagefields</a> for your custom <a href="!views">views</a>.', array('!imagecache' => 'http://drupal.org/project/imagecache', '!imagefield' => 'http://drupal.org/project/imagefield', '!views' => 'http://drupal.org/project/views')) . '</li>';
+        $output .= '<li>' . t('Image Page Link: a link to the image node can be provided within the lightbox itself.') . '</li>';
+        $output .= '<li>' . t('Page Exclusion Capability: exclude certain pages on your site from having the lightbox2 functionality.') . '</li>';
+        $output .= '<li>' . t('Login Support: ability to modify all user/login links so the login form appears in a lightbox.') . '</li>';
+        $output .= '<li>' . t('Skin and Animation Configuration: configure the order and speed of the lightbox animations, along with the lightbox colors, border size and overlay opacity.') . '</li>';
+        $output .= '<li>' . t('Gallery 2 Support: support for Gallery 2 images via the <a href="!gallery">Gallery</a> module (beta).', array('!gallery' => 'http://drupal.org/project/gallery')) . '</li>';
+        $output .= '</ul>';
+        // Usage
+        $output .= '<h3>' . t('Usage') . '</h3>';
+        $output .= '<h5 style="text-decoration: underline;">' . t('Adding a Basic Lightbox') . '</h5>';
+        $output .= '<p>' . t('Add rel=&quot;lightbox&quot; attribute to any link tag to activate the lightbox. For example:') . '</p>';
+        $output .= '<code>' . t('&lt;a href=&quot;image-1.jpg&quot; rel=&quot;lightbox&quot;&gt;image #1&lt;/a&gt;<br />
+                                &lt;a href=&quot;image-1.jpg&quot; rel=&quot;lightbox[][my caption]&quot;&gt;image #1&lt;/a&gt;') . '</code>';
+        $output .= '<p>' . t('Optional: To show a caption either use the title attribute or put in the second set of [] of the rel attribute.') . '</p>';
+        // Grouping Images
+        $output .= '<h5 style="text-decoration: underline;">' . t('Grouping Images') . '</h5>';
+        $output .= '<p>' . t('If you have a set of related images that you would like to group, follow step one but additionally include a group name between square brackets in the rel attribute. For example:') . '</p>';
+        $output .= '<code>' . t('&lt;a href="images/image-1.jpg" rel="lightbox[roadtrip]"&gt;image #1&lt;/a&gt;<br />
+                                &lt;a href="images/image-2.jpg" rel="lightbox[roadtrip][caption 2]"&gt;image#2&lt;/a&gt;<br />
+                                &lt;a href="images/image-3.jpg" rel="lightbox[roadtrip][caption 3]"&gt;image#3&lt;/a&gt;') . '</code>';
+        $output .= '<p>' . t('No limits to the number of image sets per page or how many images are allowed in each set.') . '</p>';
+        $output .= '<p>' . t('If you have a set of images that you would like to group together in a lightbox, but only wish for one of these images to be visible on your page, you can assign the "lightbox_hide_image" class to hide the additional images. For example:') . '</p>';
+        $output .= '<p><code>' . t('&lt;a href="images/image-1.jpg" rel="lightbox[roadtrip]"&gt;image #1&lt;/a&gt;<br />
+                                &lt;a href="images/image-2.jpg" rel="lightbox[roadtrip]" class="lightbox_hide_image"&gt;image #2&lt;/a&gt;<br />
+                                &lt;a href="images/image-3.jpg" rel="lightbox[roadtrip][caption 3]" class="lightbox_hide_image"&gt;image #3&lt;/a&gt;') . '</code></p>';
+        // Slideshow
+        $output .= '<h5 style="text-decoration: underline;">' . t('Slideshow') . '</h5>';
+        $output .= '<p>' . t('This is very similar to the grouping functionality described above. The only difference is that "rel" attribute should be set to "lightshow" instead of "lightbox". Using the same example as above, we could launch the images in a slideshow by doing:') . '</p>';
+        $output .= '<p><code>' . t('&lt;a href="images/image-1.jpg" rel="lightshow[roadtrip]"&gt;image #1&lt;/a&gt;<br />
+                                &lt;a href="images/image-2.jpg" rel="lightshow[roadtrip][caption 2]"&gt;image #2&lt;/a&gt;<br />
+                                &lt;a href="images/image-3.jpg" rel="lightshow[roadtrip][caption 3]"&gt;image #3&lt;/a&gt;') . '</code></p>';
+        // Video Content
+        $output .= '<h5 style="text-decoration: underline;">' . t('Video Content') . '</h5>';
+        $output .= '<p>' . t('It\'s possible to show video content in the lightbox. In this case the "rel" attribute should be set to <code>lightvideo</code>. It\'s possible to group videos and to control the size of the lightbox by setting the \'width\' and \'height\' properties. The properties can be configured like <code>lightvideo[group|width:300px; height: 200px;]</code> and <code>lightvideo[|width:300px; height: 200px;][my caption]</code>. The properties should all be of the format "property: value;" - note the closing semi-colon. If no properties are set, then the default width and height of 400px will be used. See below for more detailed examples.') . '</p>';
+        $output .= '<p>' . t('Basic example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://video.google.com/videoplay?docid=1811233136844420765" rel="lightvideo"&gt;Google video example - default size&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Basic example with caption:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://video.google.com/videoplay?docid=1811233136844420765" rel="lightvideo[][my caption]"&gt;Google video example - default size&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Grouped example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://video.google.com/videoplay?docid=29023498723974239479" rel="lightvideo[group][my caption]"&gt;Grouped example 1&lt;/a&gt;<br />
+                                &lt;a href="http://video.google.com/videoplay?docid=1811233136844420765" rel="lightvideo[group][my caption]"&gt;Grouped example 2&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Controlling lightbox size example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://video.google.com/videoplay?docid=1811233136844420765" rel="lightvideo[|width:400px; height:300px;][my caption]"&gt;Google video example - custom size&lt;/a&gt;') . '<br /></code></p>';
+        $output .= '<p>' . t('Supported Video Formats:') . '<br />';
+        $output .= t('asx, wmv, mov and swf videos should all be supported. A number of video providers are also supported, for example YouTube and Google Video. For full details on how to integrate these with lightbox, please see the online documentation.') . '</p>';
+        // HTML Content
+        $output .= '<h5 style="text-decoration: underline;">' . t('HTML Content') . '</h5>';
+        $output .= '<p>' . t('It\'s possible to show webpage content in the lightbox, using iframes. In this case the "rel" attribute should be set to <code>lightframe</code>. Again it\'s possible to group the items, (e.g. <code>lightframe[search]</code>) but in addition to that, it\'s possible to control some of the iframe properties. It\'s possible to set the \'width\', \'height\' and \'scrolling\' properties of the iframe. The properties are separated from the group name by a <code>|</code>, for example <code>lightframe[search|width:100px;]</code> and <code>lightframe[search|width:120px][my caption]</code>. If no grouping is being used, then the <code>|</code> is still used and the format would be <code>lightframe[|width:100px;]</code>. The properties should all be of the format "property: value;" - note the closing semi-colon.  If no iframe properties are set, then the default width and height of 400px will be used.  See below for more detailed examples.') . '</p>';
+        $output .= '<p>' . t('Basic example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://www.google.com" rel="lightframe[][Search Google]"&gt;Search google&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Grouped example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://www.google.com" rel="lightframe[search]"&gt;Search google&lt;/a&gt;<br />
+                                &lt;a href="http://www.yahoo.com" rel="lightframe[search][Search Yahoo]"&gt;Search yahoo&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Controlling iframe property example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://www.google.com" rel="lightframe[|width:400px; height:300px; scrolling: auto;]"&gt;Search google&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Controlling iframe property when grouped example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="http://www.google.com" rel="lightframe[search|width:400px; height:300px; scrolling: auto;]"&gt;Search google&lt;/a&gt;<br />
+                                &lt;a href="http://www.yahoo.com" rel="lightframe[search|width:400px; height:300px;][Search Yahoo]"&gt;Search yahoo&lt;/a&gt;') . '</code></p>';
+        // Inline Content Support
+        $output .= '<h5 style="text-decoration: underline;">' . t('Inline Content Support') . '</h5>';
+        $output .= '<p>' . t('It\'s possible to show HTML snippets in the lightbox, that is on the same domain. In this case the "rel" attribute should be set to <code>lightmodal</code>. Again it\'s possible to group the content, (e.g. <code>lightmodal[search]</code>) but in addition to that, it\'s possible to control some of the inline / modal properties. It\'s possible to set the \'width\', \'height\' and \'scrolling\' properties of the inline content. The properties are separated from the group name by a <code>|</code>, for example <code>lightmodal[search|width:100px;]</code> and <code>lightmodal[search|width:100px;][my caption]</code>. If no grouping is being used, then the <code>|</code> is still used and the format would be <code>lightmodal[|width:100px;]</code>. The properties should all be of the format "property: value;" - note the closing semi-colon. If no properties are set, then the default width and height of 400px will be used. See below for more detailed examples.') . '</p>';
+        $output .= '<p>' . t('Basic example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="search.php" rel="lightmodal"&gt;Search&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Basic example with caption:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="search.php" rel="lightmodal[][my caption]"&gt;Search&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Grouped example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="search.php" rel="lightmodal[search]"&gt;Search&lt;/a&gt;<br />
+                                &lt;a href="search.php?status=1" rel="lightmodal[search][published]"&gt;Search published content&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Controlling modal property example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="search.php" rel="lightmodal[|width:400px; height:300px; scrolling: auto;]"&gt;Search&lt;/a&gt;') . '</code></p>';
+        $output .= '<p>' . t('Controlling modal property when grouped example:') . '<br />';
+        $output .= '<code>' . t('&lt;a href="search.php" rel="lightmodal[search|width:400px; height:300px; scrolling: auto;]"&gt;Search&lt;/a&gt;<br />
+                                &lt;a href="search.php?status=1" rel="lightmodal[search|width:400px; height:300px;][Search published]"&gt;Search published content&lt;/a&gt;<br />
+                                &lt;a href="search.php?status=0" rel="lightmodal[search|width:400px; height:300px;][Search Unpublished]"&gt;Search unpublished content&lt;/a&gt;') . '</code></p>';
+        // Keyboard Shortcuts
+        $output .= '<h3>' . t('Keyboard Shortcuts') . '</h3>';
+        $output .= '<p>' . t('The default keyboard shortcuts are listed below. You can override these on the admin page.') . '</p>';
+        $output .= '<table>';
+        $output .= '<tr><td>' . t('Close Lightbox') . '</td><td>x</td></tr>';
+        $output .= '<tr><td></td><td>o</td></tr>
+                    <tr><td></td><td>c</td></tr>
+                    <tr><td></td><td>ESC</td></tr>';
+        $output .= '<tr><td>' . t('Previous Image') . '</td><td>p</td></tr>';
+        $output .= '<tr><td></td><td>' . t('Left Arrow') . '</td></tr>';
+        $output .= '<tr><td>' . t('Next Image') . '</td><td>n</td></tr>';
+        $output .= '<tr><td></td><td>' . t('Right Arrow') . '</td></tr>';
+        $output .= '<tr><td>' . t('Toggle Zoom') . '</td><td>' . t('z (not available in slideshow)') . '</td></tr>';
+        $output .= '<tr><td>' . t('Toggle Play / Pause') . '</td><td>' . t('Spacebar (slideshow only)') . '</td></tr>';
+        $output .= '</table>';
+        $output .= '<p>' . t('Not all of the keyboard shortcuts work in the Opera browser, for example "z" for toggling the zoom and "spacebar" for toggling play / pause in slideshows. This can be overcome by updating your shortcut settings in the Opera preferences editor.') . '</p>';
+  
+        break;
+    }
+    return !empty($output) ? $output : '';
+  }
+ */
