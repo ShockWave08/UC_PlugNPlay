@@ -5,16 +5,17 @@ description = 'PlugNPay plugin for Drupal 7 Ubercart.'
 
 dependencies[] = uc_payment
 
-
-files[] = tests
-files[] = images
+; 
 files[] = uc_plugnplay.class.inc
 files[] = uc_plugnplay.admin.inc
 
 
 ; Test cases
-files[] = tests/uc_plugnpay.test
+files[] = tests/uc_plugnpay_testform.php
 
+
+; Images
+; files[] = images
 
 ; configure = admin/store/settings/payment/method/plugnpay
 
