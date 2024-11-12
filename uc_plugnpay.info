@@ -1,13 +1,12 @@
 ;@author: Lee Daniel
 
 name = PlugNPlay
-description = 'PlugNPay plugin for Drupal 7 Ubercart.'
+description = 'Process payments using PlugNPay'
 
 dependencies[] = uc_payment
 
 ; 
-files[] = uc_plugnplay.class.inc
-files[] = uc_plugnplay.admin.inc
+files[] = uc_plugnplay.pages.inc
 
 
 ; Test cases
@@ -17,9 +16,10 @@ files[] = tests/uc_plugnpay_testform.php
 ; Images
 ; files[] = images
 
-; configure = admin/store/settings/payment/method/plugnpay
+configure = admin/store/settings/payment/method/plugnpay
 
 package = "Ubercart - payment"
+project = "ubercart"
 version = 7.x-1.0
 core = 7.x
 php = 7.4

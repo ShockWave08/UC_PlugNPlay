@@ -27,3 +27,10 @@ function uc_plugnplay_problem() {}
 */
  function uc_plugnplay_fraud() {}
 
+
+/**
+ * Handles the payment return from PlugnPay.
+*/
+function uc_plugnplay_payment_complete() {
+    drupal_goto('/');
+  }
