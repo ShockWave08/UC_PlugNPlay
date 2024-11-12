@@ -5,31 +5,63 @@
  * Plug N Pay Smart Screens v2 Specifications integration for Drupal 7 UberCart.
  */
 
+/**
+ * Make sure anyone can complete their plugnpay orders.
+ */
+function uc_plugnpay_completion_access() {
+  // All user have access to finish the payment.
+  return TRUE;
+}
+
 
 /**
  * Implements hook_menu().
  */
-function uc_plugnplay_menu() {
+function uc_plugnpay_menu() {
   $items = array();
 
-  $items['cart/plugnplay/complete'] = array(
+  $items['cart/plugnpay/complete'] = array(
     'title' => 'Order Complete',
-    'page callback' => 'uc_plugnplay_complete',
-    'access callback' => 'uc_plugnplay_completion_access',
+    'page callback' => 'uc_plugnpay_complete',
+    'access callback' => 'uc_plugnpay_completion_access',
     'type' => MENU_CALLBACK,
-    'file' => 'uc_plugnplay.pages.inc'
+    'file' => 'uc_plugnpay.pages.inc'
+  );
+
+  $items['cart/plugnpay/success'] = array(
+    'title' => 'Order Complete',
+    'page callback' => 'uc_plugnpay_success',
+    'access callback' => 'uc_plugnpay_completion_access',
+    'type' => MENU_CALLBACK,
+    'file' => 'uc_plugnpay.pages.inc'
+  );
+
+  $items['cart/plugnpay/badcard'] = array(
+    'title' => 'Order Complete',
+    'page callback' => 'uc_plugnpay_badcard',
+    'access callback' => 'uc_plugnpay_completion_access',
+    'type' => MENU_CALLBACK,
+    'file' => 'uc_plugnpay.pages.inc'
+  );
+
+  $items['cart/plugnpay/fraud'] = array(
+    'title' => 'Order Complete',
+    'page callback' => 'uc_plugnpay_fraud',
+    'access callback' => 'uc_plugnpay_completion_access',
+    'type' => MENU_CALLBACK,
+    'file' => 'uc_plugnpay.pages.inc'
+  );
+
+  $items['cart/plugnpay/problem'] = array(
+    'title' => 'Order Complete',
+    'page callback' => 'uc_plugnpay_problem',
+    'access callback' => 'uc_plugnpay_completion_access',
+    'type' => MENU_CALLBACK,
+    'file' => 'uc_plugnpay.pages.inc'
   );
 
 
   return $items;
-}
-
- /**
- * Make sure anyone can complete their PlugnPlay orders.
- */
-function uc_plugnplay_completion_access() {
-  // All user have access to finish the payment.
-  return TRUE;
 }
 
 
@@ -62,32 +94,34 @@ function uc_plugnplay_completion_access() {
  *     specifies a callback function which will be used to generate the form
  *     that redirects the user to the payment gateway pages.
  */
-function uc_plugnplay_uc_payment_method() {
-  $path = base_path() . drupal_get_path('module', 'uc_plugnplay') . "images/plugnplay_logo.webp";
+function uc_plugnpay_uc_payment_method() {
+  $path = base_path() . drupal_get_path('module', 'uc_plugnpay') . "/images/plugnpay_logo.png";
 
   $title = theme('image', array(
     'path' => $path,
-    'alt' => t('PlugNPlay Gateway'),
-    'title' => t('PlugNPlay Gateway'),
+    'alt' => t('plugnpay Gateway'),
+    'title' => t('plugnpay Gateway'),
     'attributes' => array (
-      'style' => 'margin-bottom: -5px; position: relative; top: 2px;'
+      'style' => 'margin-bottom: 0px; position: relative; top: 0px;'
     ),
   ));
 
-  $methods['plugnplay']= array(
-    'name' => t('PlugnPay'),
+  $methods[]= array(
+    'id' => 'plugnpay',
+    'name' => t('PlugNPay'),
     'title' => $title,
-    'desc' => t('Redirect to PlugNPlay to pay by credit card.'),
-    'callback' => 'uc_payment_method_plugnplay',
-    'redirect' => 'uc_plugnplay_submission_form',
-    'weight' => 1,
-    'checkout' => FALSE,
+    'desc' => t('Redirect to plugnpay to pay by credit card.'),
+    'callback' => 'uc_payment_method_plugnpay',
+    'redirect' => 'uc_plugnpay_submission_form',
+    'weight' => 4,
+    'checkout' => TRUE,
     'no_gateway' => TRUE,
   );
 
   return $methods;
 }
 
+//     'redirect' => 'uc_plugnpay_submission_form',
 
 /**
  * Callback function to perform various operations for a payment method.
@@ -136,7 +170,7 @@ function uc_plugnplay_uc_payment_method() {
  *   Dependent on $op.
  */
 
-function uc_payment_method_plugnplay($op, &$order, $form = NULL, &$form_state = NULL) {
+function uc_payment_method_plugnpay($op, &$order, $form = NULL, &$form_state = NULL) {
   switch($op) {
     case 'settings':
       _uc_payment_method_plugnpay_settings($form);
@@ -145,7 +179,7 @@ function uc_payment_method_plugnplay($op, &$order, $form = NULL, &$form_state = 
     case 'cart-review':
         $review[] = array(
           'title' => t('Payment Gateway'), 
-          'data' => 'PlugNPlay'
+          'data' => 'plugnpay'
         );
         
         return $review;
@@ -157,68 +191,74 @@ function uc_payment_method_plugnplay($op, &$order, $form = NULL, &$form_state = 
     
 
     default:
+        print_r('default');
         break;
   }
 }
 
 /**
- * Settings form for PlugNPlay Payment 
+ * Settings form for plugnpay Payment 
  */
 function _uc_payment_method_plugnpay_settings(&$form) {
-  $form['uc_plugnplay_username'] = array(
+  $form['uc_plugnpay_username'] = array(
     '#type' => 'textfield',
-    '#title' => t('PlugNplay User Account'),
-    '#description' => t('Username for PlugnPlay account.'),
-    '#default_value' => variable_get('uc_plugnplay_username', '')
+    '#title' => t('User Account'),
+    '#description' => t('Username for plugnpay account.'),
+    '#default_value' => variable_get('uc_plugnpay_username', ''),
+    '#required' => TRUE,
   );
 
-  $form['uc_plugnplay_password'] = array(
+  $form['uc_plugnpay_password'] = array(
     '#type' => 'password',
-    '#title' => t('PlugNPlay User Account Password'),
-    '#description' => t('Password for PlugNPlay account.'),
-    '#default_value' => variable_get('uc_plugnplay_password', '')
+    '#title' => t('Password'),
+    '#description' => t('Password for plugnpay account.'),
+    '#default_value' => variable_get('uc_plugnpay_password', ''),
+    '#required' => TRUE,
   );        
 
-  $form['uc_plugnplay_server'] = array(
+  $form['uc_plugnpay_server'] = array(
     '#type' => 'textfield',
-    '#title' => t('Gateway URL, change only if it required'),
+    '#title' => t('Gateway URL'),
     '#description' => t('Password for order verification.'),
-    '#default_value' => variable_get('uc_plugnplay_server', 'https://pay1.plugnpay.com/payment/pnpremote.cgi' )
+    '#default_value' => variable_get('uc_plugnpay_server', 'https://pay1.plugnpay.com/pay/' ),
+    '#required' => TRUE,
   );
 
-  $form['uc_plugnplay_mode'] = array(
+  $form['uc_plugnpay_mode'] = array(
       '#type' => 'textfield',
-      '#title' => t('PlugNPlay Mode'),
-      '#description' => t('PlugNPlay Mode, change only if it required'),
+      '#title' => t('plugnpay Mode'),
+      '#description' => t('plugnpay Mode'),
       '#options' => array (
         'auth' => t('Static'),
         'debug' => t('Itemized'),
         'test' => t('test')
       ),
-      '#default_value' => variable_get('uc_plugnplay_mode', 'test'),
+      '#default_value' => variable_get('uc_plugnpay_mode', 'test'),
+      '#required' => TRUE,
   );
 
-  $form['uc_plugnplay_currency'] = array(
+  $form['uc_plugnpay_currency'] = array(
     '#type' => 'textfield',
     '#title' => t('Payment Currency'),
-    '#description' => t('Payment curreny, change only if it required'),
+    '#description' => t('Payment curreny'),
     '#options' => array (
       'BBD' => t('$BBD'),
       'USD' => t('$USD')
     ),
-    '#default_value' => variable_get('uc_plugnplay_currency', 'BBD'),
+    '#default_value' => variable_get('uc_plugnpay_currency', 'BBD'),
+    '#required' => TRUE,
   );
 
-  $form['uc_plugnplay_inbound_key'] = array(
+  $form['uc_plugnpay_inbound_key'] = array(
       '#type' => 'textfield',
-      '#title' => t('Payment method title'),
-      '#default_value' => variable_get('uc_plugnplay_inbound_key', t('')),
+      '#title' => t('Inbound Key'),
+      '#default_value' => variable_get('uc_plugnpay_inbound_key', t('')),
   );
 
-  $form['uc_plugnplay_outbound_key'] = array(
+  $form['uc_plugnpay_outbound_key'] = array(
     '#type' => 'textfield',
-    '#title' => t('Payment method title'),
-    '#default_value' => variable_get('uc_plugnplay_outbound_key', t('')),
+    '#title' => t('Outbound Key'),
+    '#default_value' => variable_get('uc_plugnpay_outbound_key', t('')),
   );
 }
 
@@ -228,9 +268,10 @@ function _uc_payment_method_plugnpay_settings(&$form) {
  *
  * The payment form which will be submitted to the gateway.
  */
-function uc_plugnplay_submission_form ($form_state, $order) {
+function uc_plugnpay_submission_form ($form, $form_state, $order) {
 
-  //print_r($order->$order_total);
+
+  return $form;
 
 }
  

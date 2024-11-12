@@ -1,20 +1,20 @@
 ;@author: Lee Daniel
 
-name = PlugNPlay
+name = PlugNPay
 description = 'Process payments using PlugNPay'
 
 dependencies[] = uc_payment
 
 ; 
-files[] = uc_plugnplay.pages.inc
+files[] = uc_plugnpay.pages.inc
 
 
 ; Test cases
-files[] = tests/uc_plugnpay_testform.php
+;files[] = tests/uc_plugnpay_testform.php
 
 
 ; Images
-; files[] = images
+files[] = images
 
 configure = admin/store/settings/payment/method/plugnpay
 
