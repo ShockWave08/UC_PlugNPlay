@@ -108,11 +108,11 @@ function uc_plugnpay_uc_payment_method() {
 
   $methods[]= array(
     'id' => 'plugnpay',
-    'name' => t('PlugNPay'),
+    'name' => t(' PlugNPay'),
     'title' => $title,
     'desc' => t('Redirect to plugnpay to pay by credit card.'),
     'callback' => 'uc_payment_method_plugnpay',
-    'redirect' => 'uc_plugnpay_submission_form',
+    'redirect' => 'uc_plugnpay_test_form',
     'weight' => 4,
     'checkout' => TRUE,
     'no_gateway' => TRUE,
@@ -121,7 +121,6 @@ function uc_plugnpay_uc_payment_method() {
   return $methods;
 }
 
-//     'redirect' => 'uc_plugnpay_submission_form',
 
 /**
  * Callback function to perform various operations for a payment method.
@@ -179,7 +178,7 @@ function uc_payment_method_plugnpay($op, &$order, $form = NULL, &$form_state = N
     case 'cart-review':
         $review[] = array(
           'title' => t('Payment Gateway'), 
-          'data' => 'plugnpay'
+          'data' => ' PlugNPay'
         );
         
         return $review;
@@ -191,7 +190,6 @@ function uc_payment_method_plugnpay($op, &$order, $form = NULL, &$form_state = N
     
 
     default:
-        print_r('default');
         break;
   }
 }
@@ -216,49 +214,52 @@ function _uc_payment_method_plugnpay_settings(&$form) {
     '#required' => TRUE,
   );        
 
-  $form['uc_plugnpay_server'] = array(
+  $form['uc_plugnpay_gateway'] = array(
     '#type' => 'textfield',
     '#title' => t('Gateway URL'),
     '#description' => t('Password for order verification.'),
-    '#default_value' => variable_get('uc_plugnpay_server', 'https://pay1.plugnpay.com/pay/' ),
+    '#default_value' => variable_get('uc_plugnpay_gateway', 'https://pay1.plugnpay.com/pay/' ),
     '#required' => TRUE,
   );
 
   $form['uc_plugnpay_mode'] = array(
-      '#type' => 'textfield',
-      '#title' => t('plugnpay Mode'),
-      '#description' => t('plugnpay Mode'),
+      '#type' => 'select',
+      '#title' => t('Plugnpay Mode'),
+      '#description' => t('Select the mode for transactyions.'),
       '#options' => array (
         'auth' => t('Static'),
         'debug' => t('Itemized'),
-        'test' => t('test')
+        'test' => t('Test')
       ),
       '#default_value' => variable_get('uc_plugnpay_mode', 'test'),
-      '#required' => TRUE,
   );
 
   $form['uc_plugnpay_currency'] = array(
-    '#type' => 'textfield',
+    '#type' => 'select',
     '#title' => t('Payment Currency'),
-    '#description' => t('Payment curreny'),
+    '#description' => t('Select the currency you wish to use for transactions.'),
     '#options' => array (
-      'BBD' => t('$BBD'),
-      'USD' => t('$USD')
+      'BBD' => t('BBD'),
+      'USD' => t('USD'),
+      'EURO' => t('EUR'),
+      'GBP' => t('GBP'),
+      'XCD' => t('XCD'),
     ),
     '#default_value' => variable_get('uc_plugnpay_currency', 'BBD'),
-    '#required' => TRUE,
   );
 
-  $form['uc_plugnpay_inbound_key'] = array(
+  $form['uc_plugnpay_inbound_hash'] = array(
       '#type' => 'textfield',
-      '#title' => t('Inbound Key'),
-      '#default_value' => variable_get('uc_plugnpay_inbound_key', t('')),
+      '#title' => t('Inbound Hash'),
+      '#description' => t('Generate an onbound hash from your PlugNPay Account.'),
+      '#default_value' => variable_get('uc_plugnpay_inbound_hash', t('')),
   );
 
-  $form['uc_plugnpay_outbound_key'] = array(
+  $form['uc_plugnpay_outbound_hash'] = array(
     '#type' => 'textfield',
-    '#title' => t('Outbound Key'),
-    '#default_value' => variable_get('uc_plugnpay_outbound_key', t('')),
+    '#title' => t('Outbound Hash'),
+    '#description' => t('Generate an outbound hash from your PlugNPay Account.'),
+    '#default_value' => variable_get('uc_plugnpay_outbound_hash', t('')),
   );
 }
 
@@ -270,8 +271,204 @@ function _uc_payment_method_plugnpay_settings(&$form) {
  */
 function uc_plugnpay_submission_form ($form, $form_state, $order) {
 
+   // Retrieve necessary variables from settings.
+   $username = variable_get('uc_plugnpay_username', '');
+   $password = variable_get('uc_plugnpay_password', '');
+   $gateway_url = variable_get('uc_plugnpay_gateway', 'https://pay1.plugnpay.com/pay/');
+   $mode = variable_get('uc_plugnpay_mode', 'auth');
+   $currency = variable_get('uc_plugnpay_currency', 'USD');
+ 
+   // Order data required for PlugNPay submission.
+   $amount = uc_currency_format($order->order_total, FALSE, FALSE, '.');
+   $invoice_id = $order->order_id;
+ 
+   // Create the form array that will auto-submit to PlugNPay.
+   $form = array(
+     '#action' => $gateway_url,
+     '#method' => 'POST',
+     '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
+   );
+ 
+   // Hidden form elements to pass order data to PlugNPay.
+   $form['pt_gateway_account'] = array(
+     '#type' => 'hidden',
+     '#value' => $username,
+   );
 
-  return $form;
+   $form['password'] = array(
+    '#type' => 'hidden',
+    '#value' => $password,
+  );
+
+   $form['mode'] = array(
+     '#type' => 'hidden',
+     '#value' => $mode,
+   );
+ 
+   $form['card-amount'] = array(
+     '#type' => 'hidden',
+     '#value' => $amount,
+   );
+ 
+   $form['currency'] = array(
+     '#type' => 'hidden',
+     '#value' => $currency,
+   );
+ 
+   $form['orderID'] = array(
+     '#type' => 'hidden',
+     '#value' => $invoice_id,
+   );
+ 
+   // Customer info for PlugNPay.
+   $form['pt_billing_email_address'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->primary_email,
+   );
+ 
+   $form['pt_payment_first_name'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_first_name,
+   );
+ 
+   $form['pt_payment_last_name'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_last_name,
+   );
+
+
+   $form['pt_billing_company'] = array(
+    '#type' => 'hidden',
+    '#value' => $order->company,
+  );  
+ 
+   $form['pt_billing_address_1'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_street1,
+   );
+
+   $form['pt_billing_address_2'] = array(
+    '#type' => 'hidden',
+    '#value' => $order->billing_stree2,
+  );   
+ 
+   $form['pt_billing_city'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_city,
+   );
+ 
+   $form['pt_billing_state'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_zone,
+   );
+ 
+   $form['pt_billing_postal_code'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_postal_code,
+   );
+ 
+   $form['pt_billing_country'] = array(
+     '#type' => 'hidden',
+     '#value' => $order->billing_country,
+   );
+
+   $form['pt_billing_phone_number'] = array(
+    '#type' => 'hidden',
+    '#value' => $order->phone_number,
+  );
+ 
+  // Add a submit button to the form.
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Proceed'),
+  );
+ 
+   return $form;
 
 }
+
+/**
+ * Form Builder.
+ *
+ * The payment test form which will be submitted to the gateway.
+ */
+function uc_plugnpay_test_form ($form, $form_state, $order) {
  
+   // Create the form array that will auto-submit to PlugNPay.
+   $form = array(
+     '#action' => 'https://pay1.plugnpay.com/payment/pnpremote.cgi',
+     '#method' => 'POST',
+     '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
+   );
+ 
+   // Hidden form elements to pass order data to PlugNPay.
+   $form['publisher-name'] = array(
+     '#type' => 'hidden',
+     '#value' => 'pnpdemo',
+   );
+
+  //  $form['publisher-email'] = array(
+  //   '#type' => 'hidden',
+  //   '#value' => $order->primary_email,
+  // );
+ 
+   $form['mode'] = array(
+     '#type' => 'hidden',
+     '#value' => 'auth',
+   );
+
+   $form['card-name'] = array(
+    '#type' => 'hidden',
+    '#value' => 'cardtest',
+  );
+
+  $form['card-number'] = array(
+    '#type' => 'hidden',
+    '#value' => '4111111111111111',
+  );
+
+  $form['card-exp'] = array(
+    '#type' => 'hidden',
+    '#value' => '01/18',
+  );
+
+   $form['card-type'] = array(
+    '#type' => 'hidden',
+    '#value' => 'Visa',
+  );
+
+  $form['card-cvv'] = array(
+    '#type' => 'hidden',
+    '#value' => 123,
+  );
+
+  $form['card-amount'] = array(
+    '#type' => 'hidden',
+    '#value' => 1.23,
+  );
+ 
+  // Add a submit button to the form.
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Proceed to PlugNPlay'),
+  );
+ 
+   return $form;
+}
+
+ 
+/**
+ * pb_response_message_type	Optional	behavior	string	json,querystring,xml	Format of response message.
+ * pb_response_parse_type	Optional	behavior	string	json,querystring,xml,meta,none	Response Parse Type
+ * pb_response_url	Optional	behavior	string	i.e. http://www.yourdomain.com/response.html	Maps URL for success_link, badcard_link, and problem_link
+ * pb_bad_card_url	Optional	behavior	string	i.e. http://www.yourdomain.com/badcard.html	Fully qualified URL to call after a failed card response is received from the credit card processor.  If URL is a script, method will be via a POST.  If the URL is a web page, method will be by a GET.
+ * pb_problem_url	Optional	behavior	string	i.e. http://www.yourdomain.com/problem.html	Fully qualified URL to call after either no response or an error message is received from the credit card processor.  If URL is a script, method will be via a POST. If the URL is a web page, method will be by a GET.
+ * pb_success_url	Optional	behavior	string	i.e. http://www.yourdomain.com/thankyou.html	Fully qualified URL to call after a successful authorization of the credit card is received from the credit card processor.  If URL is a script, method will be via a POST. If the URL is a web page, method will be by a GET.
+ * pb_transition_type	Optional	behavior	string	get,post,hidden	Supersedes the Transition Page settings within Account Settings.
+ * - 'get' forces Transaction Page w/GET form method
+ * - 'post' forces Transaction Page w/POST form method
+ * - 'hidden' uses our server's hidden POST method w/o showing a Transition Page.
+ * pb_transition_template	Optional	behavior	sting	i.e. deftran	Used to specify name of custom transition template to use, when 'pb_transition_type' is set to 'get' or 'post'.
+ * pb_ignore_fraud_response	Optional	behavior	string	yes	If passed with a value of 'yes', enabled bypass of AVS and Fraud screening.
+ * pb_ignore_security_code_response	Optional	behavior	string	yes,no	If passed with a value of 'yes', enabled bypass CVV Fraud screening.
+ */
