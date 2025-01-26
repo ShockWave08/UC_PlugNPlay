@@ -6,52 +6,35 @@
  *
  */
 
-
-/** 
- * Callback function to process successful response.
-*/
-function uc_plugnpay_success() {}
-
- /** 
-  * Callback function to process badcard response.
+ /**
+ * Callback function to handle successful payment.
  */
- function uc_plugnpay_badcard() {}
+function uc_plugnpay_return_callback() {
 
-/** 
- * Callback function to process problematic response.
-*/
-function uc_plugnpay_problem() {}
-
-/** 
- * Callback function to process fraudulent detection.
-*/
- function uc_plugnpay_fraud() {}
-
-
-/**
- * Handles the payment return from PlugnPay.
-*/
-function uc_plugnpay_complete() {
-  // Retrieve response parameters.
-  $response = drupal_get_query_parameters();
-
-  // Verify the response (e.g., check for a valid signature if applicable).
+  // Retrieve query parameters from PlugnPay
+  $response = $_GET;
   print_r($response);
 
-  // Load the order using the order ID from the response.
-  $order_id = $response['orderID'];
-  $order = uc_order_load($order_id);
+  // If the order ID specified in the return URL is not the same as the one in
+  // the user's session, we need to assume this is either a spoof or that the
+  // user tried to adjust the order on this side while at PayPal. If it was a
+  // legitimate checkout, the IPN will still come in from PayPal so the order
+  // gets processed correctly. We'll leave an ambiguous message just in case.
+  if (!isset($_SESSION['cart_order']) || intval($_SESSION['cart_order']) != $order->order_id) {
+  
+    // Update the order status to 'payment received' or an appropriate status.
+    uc_order_update_status($order_id, 'payment_received');
 
-  if ($order) {
-    // Update order status to 'payment received' or equivalent.
-    uc_order_payment_enter($order_id, 'plugnpay', $response['amount'], $response['transactionID'], $response);
+    // Display a success message to the user.
+    drupal_set_message(t('Payment was successful. Thank you for your purchase!'));
 
     // Redirect to the order completion page.
     drupal_goto('cart/checkout/complete');
-  } else {
-    // Handle the case where the order is not found.
-    watchdog('uc_plugnpay', 'Order ID @order_id not found in PlugNPay response.', array('@order_id' => $order_id), WATCHDOG_ERROR);
-    drupal_goto('cart');
   }
+
+  // Redirect to the order completion page.
+  drupal_goto('cart/');
+
+
 }
 
