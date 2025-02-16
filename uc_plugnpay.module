@@ -241,156 +241,65 @@ function _uc_payment_method_plugnpay_settings(&$form) {
  */
 function uc_plugnpay_submission_form ($form, $form_state, $order) {
 
-   // Retrieve necessary variables from settings.
-   $username = variable_get('uc_plugnpay_username', '');
-   $password = variable_get('uc_plugnpay_password', '');
-   $gateway_url = variable_get('uc_plugnpay_gateway', '');
-   $mode = variable_get('uc_plugnpay_mode', '');
-   $currency = variable_get('uc_plugnpay_currency', 'USD');
+  // Retrieve necessary variables from settings.
+  $username = variable_get('uc_plugnpay_username', '');
+  $password = variable_get('uc_plugnpay_password', '');
+  $gateway_url = variable_get('uc_plugnpay_gateway', '');
+  $mode = variable_get('uc_plugnpay_mode', '');
+  $currency = variable_get('uc_plugnpay_currency', 'USD');
  
-   // Order data required for PlugNPay submission.
-   $amount = uc_currency_format($order->order_total, FALSE, FALSE, '.');
-   $invoice_id = $order->order_id;
+  // Order data required for PlugNPay submission.
+  $amount = uc_currency_format($order->order_total, FALSE, FALSE, '.');
+  $invoice_id = $order->order_id;
 
-   $form_state['redirectUrl'] = array(
+  $form_state['redirectUrl'] = array(
     '#type' => 'hidden',
     '#value' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]),
   );
  
- 
-   // Create the form array that will auto-submit to PlugNPay.
-   $form = array(
-     '#action' => $gateway_url,
-     '#method' => 'POST',
-     '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
-   );
- 
-   // Hidden form elements to pass order data to PlugNPay.
-   $form['pt_gateway_account'] = array(
-     '#type' => 'hidden',
-     '#value' => $username,
-   );
-
-   $form['pt_gateway_password'] = array(
-    '#type' => 'hidden',
-    '#value' => $password,
+  // Create the form array that will auto-submit to PlugNPay.
+  $form = array(
+   '#action' => $gateway_url,
+   '#method' => 'POST',
+   '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
   );
 
-   $form['mode'] = array(
-     '#type' => 'hidden',
-     '#value' => $mode,
-   );
- 
-   $form['pt_transaction_amount'] = array(
-     '#type' => 'hidden',
-     '#value' => $amount,
-   );
- 
-   $form['pt_currency'] = array(
-     '#type' => 'hidden',
-     '#value' => $currency,
-   );
- 
-   $form['pt_order_id'] = array(
-     '#type' => 'hidden',
-     '#value' => $invoice_id,
-   );
-
-
-   // Test payment information
-   $form['pt_payment_name'] = array(
-    '#type' => 'hidden',
-    '#value' => 'cardtest',
+  // Build data array of Hidden form elements to pass order data to PlugNPay.
+  $data = array(
+    'pt_gateway_account' => $username,
+    'pt_gateway_password' => $password,
+    'mode' => $mode,
+    'pt_transaction_amount' => $amount,
+    'pt_currency' => $currency,
+    'pt_order_id' => $invoice_id,
+    'pt_payment_name' => 'cardtest', // test payment data
+    'pt_card_number' => '4111111111111111', // test payment data
+    'pt_card_expiration_month' => '08', // test payment data
+    'pt_card_expiration_year' => '27', // test payment data
+    'pt_card_type' => 'Visa', // test payment data
+    'pt_card_security_code' => 123, // test payment data
+    'card-amount' => 1005.23, // test payment data
+    // customer info 
+    'pt_billing_email_address' => $order->primary_email, 
+    'pt_payment_first_name' => $order->billing_first_name, 
+    'pt_payment_last_name' => $order->billing_last_name, 
+    'pt_billing_company' => $order->billing_company, 
+    'pt_billing_address_1' => $order->billing_street1, 
+    'pt_billing_address_2' => $order->billing_street2, 
+    'pt_billing_city' => $order->billing_city, 
+    'pt_billing_state' => $order->billing_zone, 
+    'pt_billing_postal_code' => $order->billing_postal_code, 
+    'pt_billing_country' => 'BB', 
+    'pt_billing_phone_number' => $order->billing_phone, 
   );
 
-  $form['pt_card_number'] = array(
-    '#type' => 'hidden',
-    '#value' => '4111111111111111',
-  );
-
-  $form['pt_card_expiration_month'] = array(
-    '#type' => 'hidden',
-    '#value' => '08',
-  );
-
-  $form['pt_card_expiration_year'] = array(
-    '#type' => 'hidden',
-    '#value' => '24',
-  );
-
-   $form['pt_card_type'] = array(
-    '#type' => 'hidden',
-    '#value' => 'Visa',
-  );
-
-  $form['pt_card_security_code'] = array(
-    '#type' => 'hidden',
-    '#value' => 123,
-  );
-
-  $form['card-amount'] = array(
-    '#type' => 'hidden',
-    '#value' => 1005.23,
-  );
-
- 
-   // Customer info for PlugNPay.
-   $form['pt_billing_email_address'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->primary_email,
-   );
- 
-   $form['pt_payment_first_name'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_first_name,
-   );
- 
-   $form['pt_payment_last_name'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_last_name,
-   );
-
-   $form['pt_billing_company'] = array(
-    '#type' => 'hidden',
-    '#value' => $order->billing_company,
-  );  
- 
-   $form['pt_billing_address_1'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_street1,
-   );
-
-   $form['pt_billing_address_2'] = array(
-    '#type' => 'hidden',
-    '#value' => $order->billing_street2,
-  );   
- 
-   $form['pt_billing_city'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_city,
-   );
- 
-   $form['pt_billing_state'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_zone,
-   );
- 
-   $form['pt_billing_postal_code'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_postal_code,
-   );
- 
-   $form['pt_billing_country'] = array(
-     '#type' => 'hidden',
-    //  '#value' => $order->billing_country,
-     '#value' => 'BB',
-   );
-
-   $form['pt_billing_phone_number'] = array(
-    '#type' => 'hidden',
-    '#value' => $order->billing_phone,
-  );
-
+  // Build redirect form from array
+  foreach ($data as $key => $value) {
+    $form[$key] = array(
+      '#type' => 'hidden',
+      '#value' => $value,
+    );
+  }
 
   // Add a submit button to the form.
   $form['submit'] = array(
