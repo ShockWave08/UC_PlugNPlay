@@ -174,15 +174,7 @@ function _uc_payment_method_plugnpay_settings(&$form) {
     '#description' => t('Username for plugnpay account.'),
     '#default_value' => variable_get('uc_plugnpay_username', ''),
     '#required' => TRUE,
-  );
-
-  $form['uc_plugnpay_password'] = array(
-    '#type' => 'password',
-    '#title' => t('Password'),
-    '#description' => t('Password for plugnpay account.'),
-    '#default_value' => variable_get('uc_plugnpay_password', ''),
-    '#required' => TRUE,
-  );        
+  );      
 
   $form['uc_plugnpay_gateway'] = array(
     '#type' => 'textfield',
@@ -243,7 +235,6 @@ function uc_plugnpay_submission_form ($form, $form_state, $order) {
 
   // Retrieve necessary variables from settings.
   $username = variable_get('uc_plugnpay_username', '');
-  $password = variable_get('uc_plugnpay_password', '');
   $gateway_url = variable_get('uc_plugnpay_gateway', '');
   $mode = variable_get('uc_plugnpay_mode', '');
   $currency = variable_get('uc_plugnpay_currency', 'USD');
@@ -267,7 +258,6 @@ function uc_plugnpay_submission_form ($form, $form_state, $order) {
   // Build data array of Hidden form elements to pass order data to PlugNPay.
   $data = array(
     'pt_gateway_account' => $username,
-    'pt_gateway_password' => $password,
     'mode' => $mode,
     'pt_transaction_amount' => $amount,
     'pt_currency' => $currency,
