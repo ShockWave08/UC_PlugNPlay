@@ -310,7 +310,6 @@ function uc_plugnpay_test_form ($form, $form_state, $order) {
 
     // Retrieve necessary variables from settings.
     $username = variable_get('uc_plugnpay_username', '');
-    $password = variable_get('uc_plugnpay_password', '');
 
    // Create the form array that will auto-submit to PlugNPay.
    $form = array(
