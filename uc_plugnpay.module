@@ -185,15 +185,15 @@ function _uc_payment_method_plugnpay_settings(&$form) {
   );
 
   $form['uc_plugnpay_type'] = array(
-      '#type' => 'select',
-      '#title' => t('Plugnpay Mode'),
-      '#description' => t('Select the type of transactions.'),
-      '#options' => array (
-        'auth' => t('Static'),
-        'debug' => t('Itemized'),
-        'test' => t('Test')
-      ),
-      '#default_value' => variable_get('uc_plugnpay_mode', 'test'),
+    '#type' => 'select',
+    '#title' => t('Plugnpay Mode'),
+    '#description' => t('Select the type of transactions.'),
+    '#options' => array (
+      'auth' => t('Static'),
+      'debug' => t('Itemized'),
+      'test' => t('Test')
+    ),
+    '#default_value' => variable_get('uc_plugnpay_type', ''),
   );
 
   $form['uc_plugnpay_currency'] = array(
@@ -238,7 +238,7 @@ function uc_plugnpay_submission_form ($form, $form_state, $order) {
   // Retrieve necessary variables from settings.
   $username = variable_get('uc_plugnpay_username', '');
   $gateway_url = variable_get('uc_plugnpay_gateway', '');
-  $mode = variable_get('uc_plugnpay_mode', '');
+  $mode = variable_get('uc_plugnpay_type', '');
   $currency = variable_get('uc_plugnpay_currency', 'USD');
  
   // Order data required for PlugNPay submission.
