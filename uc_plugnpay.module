@@ -307,73 +307,38 @@ function uc_plugnpay_submission_form ($form, $form_state, $order) {
  * The payment test form which will be submitted to the gateway.
  */
 function uc_plugnpay_test_form ($form, $form_state, $order) {
+  // What is this form used for?
 
-    // Retrieve necessary variables from settings.
-    $username = variable_get('uc_plugnpay_username', '');
+  // Retrieve necessary variables from settings.
+  $username = variable_get('uc_plugnpay_username', '');
 
-   // Create the form array that will auto-submit to PlugNPay.
-   $form = array(
-     '#action' => 'https://pay1.plugnpay.com/payment/pnpremote.cgi',
-     '#method' => 'POST',
-     '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
-   );
-
-  //  $form['pt_gateway_account'] = array(
-  //     '#type' => 'hidden',
-  //     '#value' => $username,
-  //   );
-
-  //   $form['pt_gateway_password'] = array(
-  //   '#type' => 'hidden',
-  //   '#value' => $password,
-  // );
- 
-   // Hidden form elements to pass order data to PlugNPay.
-   $form['publisher-name'] = array(
-     '#type' => 'hidden',
-     '#value' => 'pnpdemo',
-   );
-
-  //  $form['publisher-email'] = array(
-  //   '#type' => 'hidden',
-  //   '#value' => $order->primary_email,
-  // );
- 
-   $form['mode'] = array(
-     '#type' => 'hidden',
-     '#value' => 'auth',
-   );
-
-   $form['card-name'] = array(
-    '#type' => 'hidden',
-    '#value' => 'cardtest',
+  // Create the form array that will auto-submit to PlugNPay.
+  $form = array(
+    '#action' => 'https://pay1.plugnpay.com/payment/pnpremote.cgi',
+    '#method' => 'POST',
+    '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
   );
 
-  $form['card-number'] = array(
-    '#type' => 'hidden',
-    '#value' => '4111111111111111',
+  // Build data array of the test form
+  $data = array(
+    'publisher-name' => 'pnpdemo',
+    #'publisher-email' => 'lee@caribbeanewmedia.com',
+    'mode' => 'auth',
+    'card-name' => 'cardtest',
+    'card-number' => '4111111111111111',
+    'card-exp' => '1227',
+    'card-type' => 'Visa',
+    'card-cvv' => 123,
+    'card-amount' => 10.23,
   );
 
-  $form['card-exp'] = array(
-    '#type' => 'hidden',
-    '#value' => '1227',
-  );
-
-   $form['card-type'] = array(
-    '#type' => 'hidden',
-    '#value' => 'Visa',
-  );
-
-  $form['card-cvv'] = array(
-    '#type' => 'hidden',
-    '#value' => 123,
-  );
-
-  $form['card-amount'] = array(
-    '#type' => 'hidden',
-    '#value' => 10.23,
-  );
-
+  foreach ($data as $key => $value) {
+    $form[$key] = array(
+      '#type' => 'hidden',
+      '#value' => $value,
+    );
+  }
+  
   // Add a submit button to the form.
   $form['submit'] = array(
     '#type' => 'submit',
