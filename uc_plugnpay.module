@@ -283,6 +283,15 @@ function uc_plugnpay_submission_form ($form, $form_state, $order) {
     'pt_billing_postal_code' => $order->billing_postal_code, 
     'pt_billing_country' => 'BB', 
     'pt_billing_phone_number' => $order->billing_phone, 
+    // response fields are required
+    // not sure how you're doing it but im assuming you're mapping the responses in 1 file
+    'pb_response_message_type' => 'json', 
+    'pb_response_parse_type' => 'json', 
+    #'pb_response_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_bad_card_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_problem_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_success_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_transition_type' => 'post', // default to post so the callback to our site isn't dependent on the user 
   );
 
   // Build redirect form from array
