@@ -223,6 +223,8 @@ function _uc_payment_method_plugnpay_settings(&$form) {
     '#description' => t('Generate an outbound hash from your PlugNPay Account.'),
     '#default_value' => variable_get('uc_plugnpay_outbound_hash', t('')),
   );
+
+  return system_settings_form($form);
 }
 
 
@@ -338,7 +340,7 @@ function uc_plugnpay_test_form ($form, $form_state, $order) {
       '#value' => $value,
     );
   }
-  
+
   // Add a submit button to the form.
   $form['submit'] = array(
     '#type' => 'submit',
