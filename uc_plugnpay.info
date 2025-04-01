@@ -22,7 +22,7 @@ package = "Ubercart - payment"
 project = "ubercart"
 version = 7.x-1.0
 core = 7.x
-php = 7.4
+php = 7.3 | 7.4
 
 
 

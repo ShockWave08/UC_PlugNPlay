@@ -174,15 +174,7 @@ function _uc_payment_method_plugnpay_settings(&$form) {
     '#description' => t('Username for plugnpay account.'),
     '#default_value' => variable_get('uc_plugnpay_username', ''),
     '#required' => TRUE,
-  );
-
-  $form['uc_plugnpay_password'] = array(
-    '#type' => 'password',
-    '#title' => t('Password'),
-    '#description' => t('Password for plugnpay account.'),
-    '#default_value' => variable_get('uc_plugnpay_password', ''),
-    '#required' => TRUE,
-  );        
+  );      
 
   $form['uc_plugnpay_gateway'] = array(
     '#type' => 'textfield',
@@ -193,15 +185,15 @@ function _uc_payment_method_plugnpay_settings(&$form) {
   );
 
   $form['uc_plugnpay_type'] = array(
-      '#type' => 'select',
-      '#title' => t('Plugnpay Mode'),
-      '#description' => t('Select the type of transactions.'),
-      '#options' => array (
-        'auth' => t('Static'),
-        'debug' => t('Itemized'),
-        'test' => t('Test')
-      ),
-      '#default_value' => variable_get('uc_plugnpay_mode', 'test'),
+    '#type' => 'select',
+    '#title' => t('Plugnpay Mode'),
+    '#description' => t('Select the type of transactions.'),
+    '#options' => array (
+      'auth' => t('Static'),
+      'debug' => t('Itemized'),
+      'test' => t('Test')
+    ),
+    '#default_value' => variable_get('uc_plugnpay_type', ''),
   );
 
   $form['uc_plugnpay_currency'] = array(
@@ -231,6 +223,8 @@ function _uc_payment_method_plugnpay_settings(&$form) {
     '#description' => t('Generate an outbound hash from your PlugNPay Account.'),
     '#default_value' => variable_get('uc_plugnpay_outbound_hash', t('')),
   );
+
+  return system_settings_form($form);
 }
 
 
@@ -241,156 +235,72 @@ function _uc_payment_method_plugnpay_settings(&$form) {
  */
 function uc_plugnpay_submission_form ($form, $form_state, $order) {
 
-   // Retrieve necessary variables from settings.
-   $username = variable_get('uc_plugnpay_username', '');
-   $password = variable_get('uc_plugnpay_password', '');
-   $gateway_url = variable_get('uc_plugnpay_gateway', '');
-   $mode = variable_get('uc_plugnpay_mode', '');
-   $currency = variable_get('uc_plugnpay_currency', 'USD');
+  // Retrieve necessary variables from settings.
+  $username = variable_get('uc_plugnpay_username', '');
+  $gateway_url = variable_get('uc_plugnpay_gateway', '');
+  $mode = variable_get('uc_plugnpay_type', '');
+  $currency = variable_get('uc_plugnpay_currency', 'USD');
  
-   // Order data required for PlugNPay submission.
-   $amount = uc_currency_format($order->order_total, FALSE, FALSE, '.');
-   $invoice_id = $order->order_id;
+  // Order data required for PlugNPay submission.
+  $amount = uc_currency_format($order->order_total, FALSE, FALSE, '.');
+  $invoice_id = $order->order_id;
 
-   $form_state['redirectUrl'] = array(
+  $form_state['redirectUrl'] = array(
     '#type' => 'hidden',
     '#value' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]),
   );
  
- 
-   // Create the form array that will auto-submit to PlugNPay.
-   $form = array(
-     '#action' => $gateway_url,
-     '#method' => 'POST',
-     '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
-   );
- 
-   // Hidden form elements to pass order data to PlugNPay.
-   $form['pt_gateway_account'] = array(
-     '#type' => 'hidden',
-     '#value' => $username,
-   );
-
-   $form['pt_gateway_password'] = array(
-    '#type' => 'hidden',
-    '#value' => $password,
+  // Create the form array that will auto-submit to PlugNPay.
+  $form = array(
+   '#action' => $gateway_url,
+   '#method' => 'POST',
+   '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
   );
 
-   $form['mode'] = array(
-     '#type' => 'hidden',
-     '#value' => $mode,
-   );
- 
-   $form['pt_transaction_amount'] = array(
-     '#type' => 'hidden',
-     '#value' => $amount,
-   );
- 
-   $form['pt_currency'] = array(
-     '#type' => 'hidden',
-     '#value' => $currency,
-   );
- 
-   $form['pt_order_id'] = array(
-     '#type' => 'hidden',
-     '#value' => $invoice_id,
-   );
-
-
-   // Test payment information
-   $form['pt_payment_name'] = array(
-    '#type' => 'hidden',
-    '#value' => 'cardtest',
+  // Build data array of Hidden form elements to pass order data to PlugNPay.
+  $data = array(
+    'pt_gateway_account' => $username,
+    'mode' => $mode,
+    'pt_transaction_amount' => $amount,
+    'pt_currency' => $currency,
+    'pt_order_id' => $invoice_id,
+    'pt_payment_name' => 'cardtest', // test payment data
+    'pt_card_number' => '4111111111111111', // test payment data
+    'pt_card_expiration_month' => '08', // test payment data
+    'pt_card_expiration_year' => '27', // test payment data
+    'pt_card_type' => 'Visa', // test payment data
+    'pt_card_security_code' => 123, // test payment data
+    'card-amount' => 1005.23, // test payment data
+    // customer info 
+    'pt_billing_email_address' => $order->primary_email, 
+    'pt_payment_first_name' => $order->billing_first_name, 
+    'pt_payment_last_name' => $order->billing_last_name, 
+    'pt_billing_company' => $order->billing_company, 
+    'pt_billing_address_1' => $order->billing_street1, 
+    'pt_billing_address_2' => $order->billing_street2, 
+    'pt_billing_city' => $order->billing_city, 
+    'pt_billing_state' => $order->billing_zone, 
+    'pt_billing_postal_code' => $order->billing_postal_code, 
+    'pt_billing_country' => 'BB', 
+    'pt_billing_phone_number' => $order->billing_phone, 
+    // response fields are required
+    // not sure how you're doing it but im assuming you're mapping the responses in 1 file
+    'pb_response_message_type' => 'json', 
+    'pb_response_parse_type' => 'json', 
+    #'pb_response_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_bad_card_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_problem_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_success_url' => url('cart/plugnpay/return', ['absolute' => TRUE, 'http' => TRUE]), 
+    'pb_transition_type' => 'post', // default to post so the callback to our site isn't dependent on the user 
   );
 
-  $form['pt_card_number'] = array(
-    '#type' => 'hidden',
-    '#value' => '4111111111111111',
-  );
-
-  $form['pt_card_expiration_month'] = array(
-    '#type' => 'hidden',
-    '#value' => '08',
-  );
-
-  $form['pt_card_expiration_year'] = array(
-    '#type' => 'hidden',
-    '#value' => '24',
-  );
-
-   $form['pt_card_type'] = array(
-    '#type' => 'hidden',
-    '#value' => 'Visa',
-  );
-
-  $form['pt_card_security_code'] = array(
-    '#type' => 'hidden',
-    '#value' => 123,
-  );
-
-  $form['card-amount'] = array(
-    '#type' => 'hidden',
-    '#value' => 1005.23,
-  );
-
- 
-   // Customer info for PlugNPay.
-   $form['pt_billing_email_address'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->primary_email,
-   );
- 
-   $form['pt_payment_first_name'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_first_name,
-   );
- 
-   $form['pt_payment_last_name'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_last_name,
-   );
-
-   $form['pt_billing_company'] = array(
-    '#type' => 'hidden',
-    '#value' => $order->billing_company,
-  );  
- 
-   $form['pt_billing_address_1'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_street1,
-   );
-
-   $form['pt_billing_address_2'] = array(
-    '#type' => 'hidden',
-    '#value' => $order->billing_street2,
-  );   
- 
-   $form['pt_billing_city'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_city,
-   );
- 
-   $form['pt_billing_state'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_zone,
-   );
- 
-   $form['pt_billing_postal_code'] = array(
-     '#type' => 'hidden',
-     '#value' => $order->billing_postal_code,
-   );
- 
-   $form['pt_billing_country'] = array(
-     '#type' => 'hidden',
-    //  '#value' => $order->billing_country,
-     '#value' => 'BB',
-   );
-
-   $form['pt_billing_phone_number'] = array(
-    '#type' => 'hidden',
-    '#value' => $order->billing_phone,
-  );
-
+  // Build redirect form from array
+  foreach ($data as $key => $value) {
+    $form[$key] = array(
+      '#type' => 'hidden',
+      '#value' => $value,
+    );
+  }
 
   // Add a submit button to the form.
   $form['submit'] = array(
@@ -408,73 +318,37 @@ function uc_plugnpay_submission_form ($form, $form_state, $order) {
  * The payment test form which will be submitted to the gateway.
  */
 function uc_plugnpay_test_form ($form, $form_state, $order) {
+  // What is this form used for?
 
-    // Retrieve necessary variables from settings.
-    $username = variable_get('uc_plugnpay_username', '');
-    $password = variable_get('uc_plugnpay_password', '');
+  // Retrieve necessary variables from settings.
+  $username = variable_get('uc_plugnpay_username', '');
 
-   // Create the form array that will auto-submit to PlugNPay.
-   $form = array(
-     '#action' => 'https://pay1.plugnpay.com/payment/pnpremote.cgi',
-     '#method' => 'POST',
-     '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
-   );
-
-  //  $form['pt_gateway_account'] = array(
-  //     '#type' => 'hidden',
-  //     '#value' => $username,
-  //   );
-
-  //   $form['pt_gateway_password'] = array(
-  //   '#type' => 'hidden',
-  //   '#value' => $password,
-  // );
- 
-   // Hidden form elements to pass order data to PlugNPay.
-   $form['publisher-name'] = array(
-     '#type' => 'hidden',
-     '#value' => 'pnpdemo',
-   );
-
-  //  $form['publisher-email'] = array(
-  //   '#type' => 'hidden',
-  //   '#value' => $order->primary_email,
-  // );
- 
-   $form['mode'] = array(
-     '#type' => 'hidden',
-     '#value' => 'auth',
-   );
-
-   $form['card-name'] = array(
-    '#type' => 'hidden',
-    '#value' => 'cardtest',
+  // Create the form array that will auto-submit to PlugNPay.
+  $form = array(
+    '#action' => 'https://pay1.plugnpay.com/payment/pnpremote.cgi',
+    '#method' => 'POST',
+    '#attributes' => array('id' => 'uc-plugnpay-checkout-form'),
   );
 
-  $form['card-number'] = array(
-    '#type' => 'hidden',
-    '#value' => '4111111111111111',
+  // Build data array of the test form
+  $data = array(
+    'publisher-name' => 'pnpdemo',
+    #'publisher-email' => 'lee@caribbeanewmedia.com',
+    'mode' => 'auth',
+    'card-name' => 'cardtest',
+    'card-number' => '4111111111111111',
+    'card-exp' => '1227',
+    'card-type' => 'Visa',
+    'card-cvv' => 123,
+    'card-amount' => 10.23,
   );
 
-  $form['card-exp'] = array(
-    '#type' => 'hidden',
-    '#value' => '1227',
-  );
-
-   $form['card-type'] = array(
-    '#type' => 'hidden',
-    '#value' => 'Visa',
-  );
-
-  $form['card-cvv'] = array(
-    '#type' => 'hidden',
-    '#value' => 123,
-  );
-
-  $form['card-amount'] = array(
-    '#type' => 'hidden',
-    '#value' => 10.23,
-  );
+  foreach ($data as $key => $value) {
+    $form[$key] = array(
+      '#type' => 'hidden',
+      '#value' => $value,
+    );
+  }
 
   // Add a submit button to the form.
   $form['submit'] = array(
